@@ -1,0 +1,15 @@
+{
+  "name": "单词本",
+  "short_name": "单词",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f7f8fa",
+  "theme_color": "#4080ff",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/feathericons/feather@master/icons/book.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
