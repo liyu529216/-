@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>单词本</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{background:#f7f8fa;color:#222;padding:16px}
+.top{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+button{padding:8px 12px;border:none;border-radius:8px;background:#4080ff;color:#fff;font-size:14px}
+button.gray{background:#aaa}
+.card{background:#fff;border-radius:12px;padding:24px;min-height:220px;display:flex;flex-direction:column;justify-content:center;box-shadow:0 2px 8px #00000014}
+.en{font-size:26px;font-weight:bold;margin-bottom:12px}
+.cn{font-size:18px;color:#555;white-space:pre-line}
+.ctrl{display:flex;gap:10px;justify-content:center;margin-top:20px}
+.group-box{margin:16px 0}
+.import-area{width:100%;height:100px;border:1px solid #ddd;border-radius:8px;padding:8px;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="top">
+<button id="prev">上一个</button>
+<button id="flip">翻面</button>
+<button id="next">下一个</button>
+<button id="know">✅掌握</button>
+<button id="reset">重置本组</button>
+<button class="gray" id="export">导出</button>
+<button class="gray" id="impBtn">导入</button>
+</div>
+<div class="group-box">
+<select id="groupSel"></select>
+<button id="newGroup">新建分组</button>
+<button id="delGroup">删除分组</button>
+</div>
+<div class="card">
+<div class="en" id="enWord"></div>
+<div class="cn" id="cnWord"></div>
+</div>
+<textarea class="import-area" id="importTxt" placeholder="导入格式：英文||中文，一行一个"></textarea>
+<script>
+const $=s=>document.querySelector(s)
+const $$=s=>document.querySelectorAll(s)
+let data=JSON.parse(localStorage.getItem("wordData"))||{"默认":[]}
+let nowGroup=""
+let idx=0
+let showCn=false
+
+function save(){localStorage.setItem("wordData",JSON.stringify(data))}
+function refreshGroup(){
+  const sel=$("#groupSel")
+  sel.innerHTML=""
+  Object.keys(data).forEach(g=>{
+    const opt=document.createElement("option")
+    opt.innerText=g
+    sel.appendChild(opt)
+  })
+  if(!nowGroup||!data[nowGroup]) nowGroup=Object.keys(data)[0]
+  sel.value=nowGroup
+}
+function render(){
+  const arr=data[nowGroup]
+  if(!arr.length){
+    $("#enWord").innerText="暂无单词"
+    $("#cnWord").innerText=""
+    return
+  }
+  const w=arr[idx]
+  $("#enWord").innerText=w.en
+  $("#cnWord").innerText=showCn?w.cn:""
+}
+$("#groupSel").onchange=()=>{nowGroup=$("#groupSel").value;idx=0;showCn=false;render()}
+$("#flip").onclick=()=>{showCn=!showCn;render()}
+$("#prev").onclick=()=>{
+  const arr=data[nowGroup]
+  if(!arr.length)return
+  idx=(idx-1+arr.length)%arr.length
+  showCn=false;render()
+}
+$("#next").onclick=()=>{
+  const arr=data[nowGroup]
+  if(!arr.length)return
+  idx=(idx+1)%arr.length
+  showCn=false;render()
+}
+$("#know").onclick=()=>{
+  const arr=data[nowGroup]
+  if(!arr.length)return
+  arr.splice(idx,1)
+  if(idx>=arr.length)idx=arr.length-1
+  showCn=false;save();render()
+}
+$("#reset").onclick=()=>{idx=0;showCn=false;render()}
+$("#newGroup").onclick=()=>{
+  const name=prompt("分组名：")
+  if(!name)return
+  if(!data[name])data[name]=[]
+  save();refreshGroup();$("#groupSel").value=name;nowGroup=name;idx=0;render()
+}
+$("#delGroup").onclick=()=>{
+  if(Object.keys(data).length<=1)return alert("至少保留一组")
+  if(!confirm("删除分组？"))return
+  delete data[nowGroup]
+  save();refreshGroup();idx=0;render()
+}
+$("#export").onclick=()=>{
+  const text=btoa(unescape(encodeURIComponent(JSON.stringify(data))))
+  navigator.clipboard.writeText(text).then(()=>alert("已复制备份串"))
+}
+$("#impBtn").onclick=()=>{
+  const txt=$("#importTxt").value.trim()
+  if(!txt)return
+  if(txt.startsWith("ey")){
+    const raw=decodeURIComponent(escape(atob(txt)))
+    data=JSON.parse(raw)
+  }else{
+    const lines=txt.split("\n")
+    const arr=[]
+    lines.forEach(line=>{
+      const sp=line.split("||")
+      if(sp.length>=2)arr.push({en:sp[0].trim(),cn:sp[1].trim()})
+    })
+    data[nowGroup]=arr
+  }
+  save();refreshGroup();idx=0;showCn=false;render()
+  $("#importTxt").value=""
+  alert("导入完成")
+}
+refreshGroup();render()
+</script>
+</body>
+</html>
